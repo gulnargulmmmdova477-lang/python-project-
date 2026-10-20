@@ -1,0 +1,208 @@
+
+import asyncio
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import CommandStart
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+BOT_TOKEN = "TOKENINI_BURA_YAZ"
+
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+# Nümunə sual bazası
+QUESTIONS = {
+    1: {
+        "question": "80 ədədinin 25%-ni tapın.",
+        "options": {
+            "A": "15",
+            "B": "20",
+            "C": "25",
+            "D": "30",
+        },
+        "correct": "B",
+        "explanation": "80 × 25 / 100 = 20."
+    }
+}
+
+# İstifadəçilərin seçdiyi cavablar
+user_answers = {}
+
+
+def question_keyboard(user_id):
+    builder = InlineKeyboardBuilder()
+    selected = user_answers.get(user_id)
+
+    for letter, option in QUESTIONS[1]["options"].items():
+        prefix = "👉 " if selected == letter else ""
+        builder.button(
+            text=f"{prefix}{letter}) {option}",
+            callback_data=f"ans_{letter}"
+        )
+
+    builder.adjust(2)
+    builder.button(
+        text="✅ Yoxla",
+        callback_data="check_answer"
+    )
+    builder.button(
+        text="🔙 Menyuya qayıt",
+        callback_data="back_to_start"
+    )
+    builder.adjust(2, 1, 1)
+    return builder.as_markup()
+
+
+async def send_question(message, user_id):
+    user_answers.pop(user_id, None)
+    q = QUESTIONS[1]
+
+    await message.answer(
+        f"📝 Sual:\n\n{q['question']}\n\n"
+        + "\n".join(
+            f"{letter}) {option}"
+            for letter, option in q["options"].items()
+        ),
+        reply_markup=question_keyboard(user_id)
+    )
+
+
+@dp.message(CommandStart())
+async def cmd_start(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Riyaziyyat", callback_data="Math1")
+    builder.button(text="Kömək", callback_data="Help1")
+    builder.adjust(2)
+
+    await message.answer(
+        "Salam! Fənni seç:",
+        reply_markup=builder.as_markup()
+    )
+
+
+@dp.callback_query(F.data == "Math1")
+async def choose_math(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="9-cu sinif",
+        callback_data="step_left_2"
+    )
+    builder.button(
+        text="11-ci sinif",
+        callback_data="step_right_2"
+    )
+    builder.button(
+        text="🔙 Geri",
+        callback_data="back_to_start"
+    )
+    builder.adjust(2, 1)
+
+    await callback.message.edit_text(
+        "Riyaziyyat — sinfini seç:",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+@dp.callback_query(
+    F.data.in_({"step_left_2", "step_right_2"})
+)
+async def start_quiz(callback: types.CallbackQuery):
+    await callback.answer()
+    await send_question(
+        callback.message,
+        callback.from_user.id
+    )
+
+
+@dp.callback_query(F.data.startswith("ans_"))
+async def select_answer(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    letter = callback.data.split("_", 1)[1]
+
+    user_answers[user_id] = letter
+
+    await callback.message.edit_reply_markup(
+        reply_markup=question_keyboard(user_id)
+    )
+    await callback.answer("Cavabın seçildi!")
+
+
+@dp.callback_query(F.data == "check_answer")
+async def check_answer(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    selected = user_answers.get(user_id)
+    q = QUESTIONS[1]
+
+    if selected is None:
+        await callback.answer(
+            "Əvvəlcə bir cavab seç!",
+            show_alert=True
+        )
+        return
+
+    if selected == q["correct"]:
+        result = "✅ Düzgündür!"
+    else:
+        result = (
+            "❌ Səhvdir!\n"
+            f"Düzgün cavab: {q['correct']}) "
+            f"{q['options'][q['correct']]}"
+        )
+
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🔄 Yenidən həll et",
+        callback_data="step_left_2"
+    )
+    builder.button(
+        text="🔙 Menyuya qayıt",
+        callback_data="back_to_start"
+    )
+    builder.adjust(1)
+
+    await callback.message.edit_text(
+        f"📝 {q['question']}\n\n"
+        f"{result}\n\n"
+        f"📚 İzah:\n{q['explanation']}",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "Help1")
+async def show_help(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🔙 Geri",
+        callback_data="back_to_start"
+    )
+
+    await callback.message.edit_text(
+        "Bu bot DIM imtahanına hazırlaşmaq üçün yaradılıb.",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "back_to_start")
+async def back_to_start(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Riyaziyyat", callback_data="Math1")
+    builder.button(text="Kömək", callback_data="Help1")
+    builder.adjust(2)
+
+    user_answers.pop(callback.from_user.id, None)
+
+    await callback.message.edit_text(
+        "Fənni seç:",
+        reply_markup=builder.as_markup()
+    )
+    await callback.answer()
+
+
+async def main():
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
