@@ -10,7 +10,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # Tokeni kodun içinə yazma: terminalda  set BOT_TOKEN=...  (Windows)  /  export BOT_TOKEN=... (Linux/Mac)
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8947822403:AAGObRhcfIVhEMkSAyolsa6-mkX7ZnximQ8")
 EXCEL_FILE = "questions.xlsx"  # Google Sheets-dən "Download as .xlsx" ilə yüklənən fayl
 
 bot = Bot(token=BOT_TOKEN)
