@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-BOT_TOKEN = "TOKENINI_BURA_YAZ"
+BOT_TOKEN = 8970780609:AAGRGogbUqV0g3XZnOPWDbHEQb_mSbMNw-Q
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
